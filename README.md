@@ -1,6 +1,4 @@
 # DPU-HoCM-INFOCOM26
-=======
-**项目链接：**[**https://github.com/sunxi11/dpu-cc**](https://github.com/sunxi11/dpu-cc)
 
 # 0、DPU OVS 网桥配置
 https://docs.nvidia.com/doca/sdk/bluefield+scalable+function+user+guide/index.html
