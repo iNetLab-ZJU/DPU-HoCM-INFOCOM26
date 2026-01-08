@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DPU-HoCM-INFOCOM26
 =======
 **项目链接：**[**https://github.com/sunxi11/dpu-cc**](https://github.com/sunxi11/dpu-cc)
@@ -83,4 +82,3 @@ iperf3 -s --port 3003
 ```shell
 iperf3 -c 10.0.0.11 --port 3003
 ```
->>>>>>> b9245fe (first commit)
