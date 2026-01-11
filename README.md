@@ -1,9 +1,8 @@
 # DPU-HoCM-INFOCOM26
-
-# 0、DPU OVS 网桥配置
+# 0、DPU OVS Bridge Configuration
 https://docs.nvidia.com/doca/sdk/bluefield+scalable+function+user+guide/index.html
 
-## 创建SF
+## Create SF
 ```shell
 /opt/mellanox/iproute2/sbin/mlxdevm port add pci/0000:03:00.1 flavour pcisf pfnum 1 sfnum 4
 /opt/mellanox/iproute2/sbin/mlxdevm port function set pci/0000:03:00.1/294913 hw_addr 00:00:00:00:04:0 trust on state active
@@ -16,7 +15,7 @@ echo mlx5_core.sf.5  > /sys/bus/auxiliary/drivers/mlx5_core.sf_cfg/unbind
 echo mlx5_core.sf.5  > /sys/bus/auxiliary/drivers/mlx5_core.sf/bind
 ```
 
-## 配置 SF 网桥如下
+## Configure SF Bridges as follows
 ```shell
 c88ec159-93ba-4165-abb6-74a2acac6b9c
     Bridge br2
@@ -38,45 +37,42 @@ c88ec159-93ba-4165-abb6-74a2acac6b9c
     ovs_version: "2.10.0-0056-25.01-based-3.3.4"
 ```
 
-## 配置硬件流表
+## Configure Hardware Flow Table
 ```shell
 ovs-vsctl set Open_vSwitch . other_config:hw-offload=true
 ovs-vsctl get Open_vSwitch . other_config:hw-offload
-# 应该返回 "true"
+# Should return "true"
 ovs-ofctl add-flow br1 "in_port=p1,actions=output:en3f1pf1sf4"
 ovs-ofctl add-flow br2 "in_port=pf1hpf,actions=output:en3f1pf1sf5"
 ovs-ofctl add-flow br1 "in_port=en3f1pf1sf4,actions=output:p1"
 ovs-ofctl add-flow br2 "in_port=en3f1pf1sf5,actions=output:pf1hpf"
 ```
 
-
-# 1、系统架构
+# 1、System Architecture
 ![yuque_mind.jpeg](doc%2Fyuque_mind.jpeg)
 
-1. 优先级和端口绑定，最高优先级直接走 fast path ，通过硬件路径转发到 uplink （host）
-2. 在线程上把收报和发包接耦，4个线程进行收包，4个线程进行发包
-3. 把收包的内存分成6个部分，每个部分抽象成一个环形缓冲区，优先级越高，对应的环形缓冲区越大（丢包越少）
-4. 单独一个线程进行限速，当读取到 host 堵塞时（按照一定的策略）进行限速操作
+1. Priority and port binding are adopted. Traffic with the highest priority is forwarded through the fast path directly and transmitted to the uplink (host) via the hardware path.
+2. Packet receiving and packet transmission are decoupled at the thread level, with 4 threads dedicated to packet receiving and another 4 threads for packet transmission.
+3. The memory space allocated for packet receiving is divided into 6 parts, and each part is abstracted as a ring buffer. The higher the priority, the larger the corresponding ring buffer (resulting in fewer packet losses).
+4. A separate thread is responsible for rate limiting, which enforces rate limiting operations according to specific policies when host congestion is detected.
 
-
-
-# 2、运行方法
+# 2、Running Method
 ```shell
 /home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc/simple-fwd-vnf -a auxiliary:mlx5_core.sf.4,dv_flow_en=2 -a auxiliary:mlx5_core.sf.5,dv_flow_en=2 -- -l 60 -o -a
 ```
 
-# 3、带宽测试
+# 3、Bandwidth Test
 
-1. 在 DPU 的 ARM 上运行该程序
+1. Run the program on the ARM of DPU
 ```shell
 /home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc/simple-fwd-vnf -a auxiliary:mlx5_core.sf.4,dv_flow_en=2 -a auxiliary:mlx5_core.sf.5,dv_flow_en=2 -- -l 60 -o -a
 ```
-2. 在 DPU 的 HOST 上（5866）运行 iperf 的服务端
+2. Run the iperf server on the HOST (5866) of DPU
 ```shell
 iperf3 -s --port 3003
 ```
 
-3. 在 5558 服务器上运行 iperf 的客户端
+3. Run the iperf client on the 5558 server
 ```shell
 iperf3 -c 10.0.0.11 --port 3003
 ```
